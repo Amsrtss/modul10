@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use RealRashid\SweetAlert\Facades\Alert;
+use PDF;
+
 
 
 class EmployeeController extends Controller
@@ -19,14 +22,10 @@ class EmployeeController extends Controller
     public function index()
     {
         $pageTitle = 'Employee List';
-        // Query Builder
-       // ELOQUENT
-    $employees = Employee::all();
 
-    return view('employee.index', [
-        'pageTitle' => $pageTitle,
-        'employees' => $employees
-    ]);
+        confirmDelete();
+
+        return view('employee.index', compact('pageTitle'));
 
     }
 
@@ -87,6 +86,8 @@ class EmployeeController extends Controller
         }
 
         $employee->save();
+
+        Alert::success('Added Successfully', 'Employee Data Added Successfully.');
 
         return redirect()->route('employees.index');
 
@@ -164,6 +165,8 @@ public function update(Request $request, string $id)
 
     $employee->save();
 
+    Alert::success('Changed Successfully', 'Employee Data Changed Successfully.');
+
     return redirect()->route('employees.index');
 }
 
@@ -186,6 +189,8 @@ public function update(Request $request, string $id)
         $employee->delete();
     }
 
+    Alert::success('Deleted Successfully', 'Employee Data Deleted Successfully.');
+
     // Redirect ke halaman daftar employee
     return redirect()->route('employees.index');
 }
@@ -201,5 +206,32 @@ public function downloadFile($employeeId)
         return Storage::download($encryptedFilename, $downloadFilename);
     }
 }
+
+
+public function getData(Request $request)
+{
+    $employees = Employee::with('position');
+
+    if ($request->ajax()) {
+        return datatables()->of($employees)
+            ->addIndexColumn()
+            ->addColumn('action', function($employee) {
+                return view('employee.action', compact('employee'));
+            })
+            ->toJson();
+    }
+}
+
+public function exportPdf()
+{
+    $employees = Employee::all();
+
+    $pdf = PDF::loadView('employee.export_pdf', compact('employees'));
+
+    return $pdf->download('employees.pdf');
+}
+
+
+
 
 }
